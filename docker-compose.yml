@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  log-aggregator:
+    build: ./log-aggregator
+    volumes:
+      - ./logs:/usr/src/app/logs
+    ports:
+      - "5001:5000"
+    networks:
+      - kafka-net
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - kafka-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_4LW_COMMANDS_WHITELIST: "ruok,stat,conf,isro,srvr"
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      retries: 5
+    networks:
+      - kafka-net
+
+
+networks:
+  kafka-net:

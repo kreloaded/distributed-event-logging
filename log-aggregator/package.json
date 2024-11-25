@@ -1,0 +1,8 @@
+{
+    "name": "log-aggregator",
+    "version": "1.0.0",
+    "main": "aggregator.js",
+    "dependencies": {
+        "kafka-node": "^5.0.0"
+    }
+}
