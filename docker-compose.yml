@@ -1,16 +1,11 @@
 version: '3.8'
 
 services:
-  log-aggregator:
-    build: ./log-aggregator
-    volumes:
-      - ./logs:/usr/src/app/logs
-    ports:
-      - "5001:5000"
+  kafka-to-elastic:
+    build: ./kafka-to-elastic
     depends_on:
-      - zookeeper
       - kafka
-      - logstash
+      - elasticsearch
     networks:
       - kafka-net
 
