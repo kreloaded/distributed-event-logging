@@ -12,6 +12,7 @@ const TOPIC = 'logs';
 fs.watchFile(LOG_FILE, { interval: 1000 }, (curr, prev) => {
     console.log('Log file updated...');
     const logs = fs.readFileSync(LOG_FILE, 'utf8');
+
     const newLogs = logs.split('\n').slice(prev.size).join('\n');
 
     if (newLogs.trim()) {
