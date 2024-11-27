@@ -3,4 +3,4 @@ WORKDIR /app
 COPY package.json /app/
 RUN npm install
 COPY . /app/
-CMD ["node", "kafka_to_elasticsearch.js"]
+CMD ["node", "kafka-to-elastic.js"]
