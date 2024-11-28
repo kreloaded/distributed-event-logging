@@ -8,6 +8,7 @@ services:
       - elasticsearch
     networks:
       - kafka-net
+    entrypoint: [ "/bin/sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done; npm start" ]
 
   zookeeper:
     image: confluentinc/cp-zookeeper:6.2.0
@@ -27,6 +28,7 @@ services:
     container_name: kafka
     depends_on:
       - zookeeper
+      - elasticsearch
     ports:
       - "9092:9092"
     environment:
@@ -42,6 +44,11 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
     networks:
       - kafka-net
+    healthcheck:
+      test: [ "CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   logstash:
     image: docker.elastic.co/logstash/logstash:7.17.12

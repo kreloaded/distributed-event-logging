@@ -7,7 +7,7 @@ const kafka = new Kafka({
     brokers: ['kafka:9092'] // Kafka broker address
 });
 
-const topic = 'logs-topic';
+const topic = 'logs';
 const consumer = kafka.consumer({ groupId: 'log-consumer-group' });
 
 // Elasticsearch Configuration
@@ -40,12 +40,13 @@ async function run() {
                 };
 
                 // Index the log into Elasticsearch
-                await esClient.index({
+                const resp = await esClient.index({
                     index: indexName,
                     document: logData
                 });
 
-                console.log('Log indexed in Elasticsearch:', logData);
+                console.log('logData: --->', logData);
+                console.log('Log indexed in Elasticsearch:', resp);
             } catch (error) {
                 console.error('Error processing message:', error);
             }
