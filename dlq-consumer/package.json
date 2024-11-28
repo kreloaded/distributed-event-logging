@@ -1,0 +1,13 @@
+{
+    "name": "dlq-consumer",
+    "version": "1.0.0",
+    "description": "DLQ consumer for processing logs from Kafka",
+    "main": "processDLQ.js",
+    "scripts": {
+        "start": "node processDLQ.js"
+    },
+    "dependencies": {
+        "kafkajs": "2.0.0",
+        "@elastic/elasticsearch": "8.0.0"
+    }
+}

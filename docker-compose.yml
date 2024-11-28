@@ -10,6 +10,15 @@ services:
       - kafka-net
     entrypoint: [ "/bin/sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done; npm start" ]
 
+  dlq-consumer:
+    build: ./dlq-consumer
+    depends_on:
+      - kafka
+      - elasticsearch
+    networks:
+      - kafka-net
+    entrypoint: [ "/bin/sh", "-c", "until nc -z kafka 9092 && curl -s http://elasticsearch:9200 > /dev/null; do echo waiting for services; sleep 2; done; npm start" ]
+
   zookeeper:
     image: confluentinc/cp-zookeeper:6.2.0
     hostname: zookeeper
