@@ -48,8 +48,10 @@ OpenSSL: Required for generating SSL/TLS certificates for secure communication.
 
 Setup Instructions
 Step 1: Clone the Repository
+```plaintext
 git clone <repository-url>
 cd Distributed-Event-Logging-Kiran
+```
 
 Step 2: Generate Certificates for Secure Communication
 Use OpenSSL to generate self-signed certificates:
@@ -57,16 +59,18 @@ Use OpenSSL to generate self-signed certificates:
 Navigate to the certs/ directory.
 
 Run the following commands to create a CA certificate:
+```plaintext
 openssl genrsa -out elastic-stack-ca.key 2048
 openssl req -new -x509 -key elastic-stack-ca.key -sha256 -out elastic-stack-ca.crt -days 3650 \
   -subj "/C=US/ST=State/L=City/O=Organization/OU=IT/CN=ElasticStackCA"
+```
 
 Generate certificates for Elasticsearch nodes:
-
+```plaintext
 openssl genrsa -out elasticsearch-node1.key 2048
 openssl req -new -key elasticsearch-node1.key -out elasticsearch-node1.csr \
   -subj "/C=US/ST=State/L=City/O=Organization/OU=IT/CN=node1"
 openssl x509 -req -in elasticsearch-node1.csr -CA elastic-stack-ca.crt -CAkey elastic-stack-ca.key \
   -CAcreateserial -out elasticsearch-node
-
+```
 
