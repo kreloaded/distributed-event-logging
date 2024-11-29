@@ -84,7 +84,7 @@ Setup Instructions
 Clone the Repository
 Clone the project repository to your local machine
 ```plaintext
-git clone https://github.com/yourusername/distributed-event-logging.git
+git clone https://github.com/kreloaded/distributed-event-logging/distributed-event-logging.git
 cd distributed-event-logging
 ```
 
