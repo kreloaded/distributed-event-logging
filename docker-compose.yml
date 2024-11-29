@@ -5,9 +5,23 @@ services:
     build: ./kafka-to-elastic
     depends_on:
       - kafka
-      - elasticsearch
+      - elasticsearch-node1
+      - elasticsearch-node2
     networks:
       - kafka-net
+    entrypoint: [ "/bin/sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done; npm start" ]
+    platform: linux/amd64  
+
+  dlq-consumer:
+    build: ./dlq-consumer
+    depends_on:
+      - kafka
+      - elasticsearch-node1
+      - elasticsearch-node2
+    networks:
+      - kafka-net
+    entrypoint: [ "/bin/sh", "-c", "until nc -z kafka 9092 && curl -s http://elasticsearch-node1:9200 > /dev/null; do echo waiting for services; sleep 2; done; npm start" ]
+    platform: linux/amd64  
 
   zookeeper:
     image: confluentinc/cp-zookeeper:6.2.0
@@ -20,6 +34,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - kafka-net
+    platform: linux/amd64  
 
   kafka:
     image: confluentinc/cp-kafka:6.2.0
@@ -27,6 +42,8 @@ services:
     container_name: kafka
     depends_on:
       - zookeeper
+      - elasticsearch-node1
+      - elasticsearch-node2
     ports:
       - "9092:9092"
     environment:
@@ -42,6 +59,12 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
     networks:
       - kafka-net
+    healthcheck:
+      test: [ "CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    platform: linux/amd64  
 
   logstash:
     image: docker.elastic.co/logstash/logstash:7.17.12
@@ -55,26 +78,92 @@ services:
       - kafka
     networks:
       - kafka-net
+    platform: linux/amd64  
 
-  elasticsearch:
+  elasticsearch-node1:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.12
-    container_name: elasticsearch
+    container_name: elasticsearch-node1
     environment:
-      - discovery.type=single-node
+      - node.name=es-node-1
+      - cluster.name=es-cluster
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2
+      - cluster.initial_master_nodes=es-node-1,es-node-2
+      - network.host=0.0.0.0
+      - ELASTIC_PASSWORD='7*HG5aY5b0uLXJO=AIT8'
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.keystore.path=/usr/share/elasticsearch/config/certs/elasticsearch-node1.p12
+      - xpack.security.transport.ssl.truststore.path=/usr/share/elasticsearch/config/certs/elasticsearch-node1.p12
+      - bootstrap.system_call_filter=false
     ports:
-      - "9200:9200"
+      - 9200:9200
+      - 9300:9300
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+      - ./certs/node1:/usr/share/elasticsearch/config/certs
+      - ./certs/node1/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
     networks:
-      - kafka-net
+      - es-net
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined
+
+  elasticsearch-node2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.12
+    container_name: elasticsearch-node2
+    environment:
+      - node.name=es-node-2
+      - cluster.name=es-cluster
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2
+      - cluster.initial_master_nodes=es-node-1,es-node-2
+      - network.host=0.0.0.0
+      - ELASTIC_PASSWORD='7*HG5aY5b0uLXJO=AIT8'
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.keystore.path=/usr/share/elasticsearch/config/certs/elasticsearch-node2.p12
+      - xpack.security.transport.ssl.truststore.path=/usr/share/elasticsearch/config/certs/elasticsearch-node2.p12
+      - bootstrap.system_call_filter=false
+    ports:
+      - 9201:9200
+      - 9301:9300
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
+      - ./certs/node2:/usr/share/elasticsearch/config/certs
+      - ./certs/node2/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  
+    networks:
+      - es-net
+    platform: linux/amd64
+    security_opt:
+      - seccomp:unconfined  
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.17.12
     container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=["http://elasticsearch-node1:9200","http://elasticsearch-node2:9200"]
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD='7*HG5aY5b0uLXJO=AIT8'
     ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
+      - 5601:5601
     networks:
-      - kafka-net
+      - es-net
+    depends_on:
+      - elasticsearch-node1
+      - elasticsearch-node2
+    platform: linux/amd64  
+
+volumes:
+  esdata1:
+    driver: local
+  esdata2:
+    driver: local
 
 networks:
+  es-net:
+    driver: bridge
   kafka-net:
+    driver: bridge
