@@ -6,85 +6,67 @@ This project provides a distributed event logging setup using the Elastic Stack 
 
 ## Project Structure
 
-Distributed-Event-Logging-Kiran/ ├── certs/ │ ├── kibana/ │ │ ├── http.crt │ │ ├── http.key │ ├── node1/ │ │ ├── elasticsearch-node1.p12 │ │ ├── elasticsearch.yml │ ├── node2/ │ │ ├── elasticsearch-node2.p12 │ │ ├── elasticsearch.yml ├── dlq-consumer/ │ ├── Dockerfile │ ├── package.json │ ├── processDLQ.js ├── elastic-cert/ │ ├── elasticsearch-node1.p12 │ ├── elasticsearch-node2.p12 │ ├── kibana.p12 │ ├── ca.crt │ ├── ca.key ├── kafka-to-elastic/ │ ├── Dockerfile │ ├── kafka-to-elastic.js │ ├── package.json ├── logs/ │ ├── app.log ├── logstash/pipeline/ │ ├── logstash.conf ├── docker-compose.yml ├── README.md
+```plaintext
+Distributed-Event-Logging/
+├── certs/
+│   ├── kibana/
+│   │   ├── http.crt
+│   │   ├── http.key
+│   ├── node1/
+│   │   ├── elasticsearch-node1.p12
+│   │   ├── elasticsearch.yml
+│   ├── node2/
+│   │   ├── elasticsearch-node2.p12
+│   │   ├── elasticsearch.yml
+├── dlq-consumer/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── processDLQ.js
+├── elastic-cert/
+│   ├── elasticsearch-node1.p12
+│   ├── elasticsearch-node2.p12
+│   ├── kibana.p12
+│   ├── ca.crt
+│   ├── ca.key
+├── kafka-to-elastic/
+│   ├── Dockerfile
+│   ├── kafka-to-elastic.js
+│   ├── package.json
+├── logs/
+│   ├── app.log
+├── logstash/pipeline/
+│   ├── logstash.conf
+├── docker-compose.yml
+├── README.md
+```
 
-yaml
-Copy code
+Prerequisites
+Docker and Docker Compose: Install Docker and Docker Compose to run the containers.
+Node.js: Required for running the Kafka consumer scripts.
+Elastic Stack License: Ensure you have a valid license for the Elastic Stack components.
+OpenSSL: Required for generating SSL/TLS certificates for secure communication.
 
----
-
-## Prerequisites
-
-1. **Docker and Docker Compose**: Install Docker Engine and Docker Compose to run the containers.
-2. **Node.js**: Required for running the custom Kafka consumer.
-3. **Elastic Stack License**: Ensure you have an appropriate license for using Elasticsearch, Logstash, and Kibana securely.
-4. **Certificates**: Use the provided certificates for secure communication between Elastic Stack components.
-
----
-
-## Setup Instructions
-
-### Step 1: Clone the Repository
-
-```bash
+Setup Instructions
+Step 1: Clone the Repository
 git clone <repository-url>
 cd Distributed-Event-Logging-Kiran
-Step 2: Set Up Certificates
-Ensure the certs directory contains the required certificates for:
 
-Elasticsearch nodes (node1 and node2).
-Kibana.
-Logstash.
-Step 3: Configure Environment Variables
-Set up the following environment variables:
+Step 2: Generate Certificates for Secure Communication
+Use OpenSSL to generate self-signed certificates:
 
-Elasticsearch username and password (e.g., elastic user).
-Kafka connection details (e.g., KAFKA_BROKER, TOPIC_NAME).
-Step 4: Modify Configurations
-Update elasticsearch.yml files for node1 and node2 in the certs directory to reflect your cluster's configuration.
-Update logstash.conf to configure pipelines as per your needs.
-Step 5: Build and Run Docker Containers
-Use the provided docker-compose.yml to spin up all required services:
+Navigate to the certs/ directory.
 
-bash
-Copy code
-docker-compose up --build
-Component Details
-Elasticsearch
-Two nodes configured for secure communication using .p12 certificates.
-YAML files in certs/node1/ and certs/node2/ contain Elasticsearch configurations.
-Kibana
-Configured to connect securely to the Elasticsearch cluster using the provided kibana.p12 certificate.
-Logstash
-Processes and forwards logs from Kafka to Elasticsearch.
-Configured using the pipeline file logstash/pipeline/logstash.conf.
-Kafka
-Integration with Elasticsearch for streaming data ingestion.
-Custom Dead Letter Queue consumer script (processDLQ.js) to handle message failures.
-Usage
-Start the Stack
-Spin up the stack using Docker Compose:
+Run the following commands to create a CA certificate:
+openssl genrsa -out elastic-stack-ca.key 2048
+openssl req -new -x509 -key elastic-stack-ca.key -sha256 -out elastic-stack-ca.crt -days 3650 \
+  -subj "/C=US/ST=State/L=City/O=Organization/OU=IT/CN=ElasticStackCA"
 
-bash
-Copy code
-docker-compose up
-Access the Services
-Kibana UI: http://localhost:5601
-Elasticsearch API: http://localhost:9200
-Kafka Dead Letter Queue (DLQ) Consumer
-Navigate to the dlq-consumer/ directory and install dependencies:
+Generate certificates for Elasticsearch nodes:
 
-bash
-Copy code
-cd dlq-consumer
-npm install
-node processDLQ.js
-Troubleshooting
-Certificate Issues: Ensure that the .p12 and .crt files are correctly placed in the certs directory.
-Container Failures: Check container logs using:
-bash
-Copy code
-docker-compose logs <container-name>
-Connectivity Issues: Verify that all components use the correct hostnames and ports.
-Contributing
-Feel free to raise issues or submit pull requests to improve the project.
+openssl genrsa -out elasticsearch-node1.key 2048
+openssl req -new -key elasticsearch-node1.key -out elasticsearch-node1.csr \
+  -subj "/C=US/ST=State/L=City/O=Organization/OU=IT/CN=node1"
+openssl x509 -req -in elasticsearch-node1.csr -CA elastic-stack-ca.crt -CAkey elastic-stack-ca.key \
+  -CAcreateserial -out elasticsearch-node
+
+
