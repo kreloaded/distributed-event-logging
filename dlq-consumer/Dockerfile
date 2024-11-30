@@ -1,7 +1,7 @@
-FROM node:18
+FROM node:18-alpine
 
-# Install netcat for health checks
-RUN apt-get update && apt-get install -y netcat-openbsd && apt-get clean
+# Install netcat for health checks using apk
+RUN apk add --no-cache curl netcat-openbsd
 
 # Set working directory
 WORKDIR /usr/src/app

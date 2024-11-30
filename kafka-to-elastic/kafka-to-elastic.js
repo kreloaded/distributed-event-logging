@@ -45,6 +45,10 @@ async function run() {
                         document: logData,
                     });
                     console.log(`Successfully indexed log: ${logData}`);
+
+                    const randomDelay = Math.random() * 1000;
+                    await new Promise((resolve) => setTimeout(resolve, randomDelay));
+
                     return;
                 } catch (error) {
                     attempts++;
