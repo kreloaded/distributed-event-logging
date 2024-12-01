@@ -22,7 +22,7 @@ services:
     networks:
       - kafka-net
       - es-net
-    entrypoint: [ "/bin/sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done; npm start" ]
+    entrypoint: [ "/bin/sh", "-c", " until nc -z kafka 9092; do echo waiting for Kafka; sleep 2; done; until curl -k -s https://elasticsearch:9200 >/dev/null; do echo dlq-consumer waiting for Elasticsearch; sleep 2; done; npm start" ]
     platform: linux/amd64
 
   zookeeper:

@@ -22,6 +22,13 @@ const esClient = new Client({
 const dlqIndexName = 'dlq-logs-index';
 
 async function processDLQ() {
+    // Check if DLQ index exists; if not, create it
+    const exists = await esClient.indices.exists({ index: dlqIndexName });
+    if (!exists) {
+        await esClient.indices.create({ index: dlqIndexName });
+        console.log(`Created DLQ index: ${dlqIndexName}`);
+    }
+
     await dlqConsumer.connect();
     console.log('Connected to DLQ consumer.');
 
@@ -45,7 +52,7 @@ async function processDLQ() {
                     index: dlqIndexName,
                     document: dlqLogData,
                 });
-                console.log(`Indexed DLQ log: ${dlqLogData}`);
+                console.log(`Indexed DLQ log: ${JSON.stringify(dlqLogData)}`);
             } catch (error) {
                 console.error('Failed to index DLQ log:', error);
             }
