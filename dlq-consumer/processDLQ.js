@@ -9,7 +9,16 @@ const kafka = new Kafka({
 const dlqLogTopic = 'dlq-logs';
 const dlqConsumer = kafka.consumer({ groupId: 'dlq-consumer-group' });
 
-const esClient = new Client({ node: 'http://elasticsearch:9200' });
+const esClient = new Client({
+    node: 'https://elasticsearch:9200',
+    auth: {
+        username: 'elastic',
+        password: '7*HG5aY5b0uLXJO=AIT8'
+    },
+    tls: {
+        rejectUnauthorized: false // Disable certificate validation for self-signed certs
+    }
+});
 const dlqIndexName = 'dlq-logs-index';
 
 async function processDLQ() {
