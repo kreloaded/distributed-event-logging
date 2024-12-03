@@ -8,3 +8,4 @@
 [2024-11-24 10:35:50] INFO: System health check completed successfully.
 [2024-11-24 10:40:02] WARN: Memory usage exceeded 80%.
 [2024-11-24 10:45:17] DEBUG: Starting backup process.
+[2024-11-24 10:48:17] DEBUG: Testing the logs adding process

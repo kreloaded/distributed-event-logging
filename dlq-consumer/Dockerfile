@@ -4,14 +4,14 @@ FROM node:18-alpine
 RUN apk add --no-cache curl netcat-openbsd
 
 # Set working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy project files
-COPY package.json /app/
+# Copy dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy the remaining project files
-COPY . /app/
+# Copy application code
+COPY . .
 
-# Command to start the app
+# Run the DLQ consumer script
 CMD ["npm", "start"]

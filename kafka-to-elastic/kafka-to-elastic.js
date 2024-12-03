@@ -1,17 +1,26 @@
 const { Kafka } = require('kafkajs');
 const { Client } = require('@elastic/elasticsearch');
 
-// Kafka Configuration
 const kafka = new Kafka({
     clientId: 'log-consumer',
-    brokers: ['kafka:9092'] // Kafka broker address
+    brokers: ['kafka:9092']
 });
 
-const topic = 'logs-topic';
+const logTopic = 'logs';
+const dlqLogTopic = 'dlq-logs'
 const consumer = kafka.consumer({ groupId: 'log-consumer-group' });
 
 // Elasticsearch Configuration
-const esClient = new Client({ node: 'http://elasticsearch:9200' });
+const esClient = new Client({
+    node: 'https://elasticsearch:9200',
+    auth: {
+        username: 'elastic',
+        password: '7*HG5aY5b0uLXJO=AIT8'
+    },
+    tls: {
+        rejectUnauthorized: false // Disable certificate validation for self-signed certs
+    }
+});
 const indexName = 'logs-index';
 
 async function run() {
@@ -20,34 +29,51 @@ async function run() {
     console.log('Kafka consumer connected.');
 
     // Subscribe to the topic
-    await consumer.subscribe({ topic, fromBeginning: true });
-    console.log(`Subscribed to topic: ${topic}`);
+    await consumer.subscribe({ topic: logTopic, fromBeginning: true });
+    console.log(`Subscribed to topic: ${logTopic}`);
 
     // Consume messages
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            try {
-                const logMessage = message.value.toString();
-                console.log(`Received log: ${logMessage}`);
+            const logMessage = message.value.toString();
+            const maxRetries = 3;
+            let attempts = 0;
 
-                // Prepare log data for Elasticsearch
-                const logData = {
-                    message: logMessage,
-                    topic,
-                    partition,
-                    offset: message.offset,
-                    timestamp: new Date().toISOString()
-                };
+            while (attempts < maxRetries) {
+                try {
+                    const logData = {
+                        message: logMessage,
+                        topic,
+                        partition,
+                        offset: message.offset,
+                        timestamp: new Date().toISOString()
+                    };
 
-                // Index the log into Elasticsearch
-                await esClient.index({
-                    index: indexName,
-                    document: logData
-                });
+                    await esClient.index({
+                        index: indexName,
+                        document: logData,
+                    });
+                    console.log(`Successfully indexed log: ${logData}`);
 
-                console.log('Log indexed in Elasticsearch:', logData);
-            } catch (error) {
-                console.error('Error processing message:', error);
+                    const randomDelay = Math.random() * 1000;
+                    await new Promise((resolve) => setTimeout(resolve, randomDelay));
+
+                    return;
+                } catch (error) {
+                    attempts++;
+                    console.error(`Attempt ${attempts} failed:`, error);
+                    if (attempts >= maxRetries) {
+                        // Send to Dead Letter Queue
+                        const producer = kafka.producer();
+                        await producer.connect();
+                        await producer.send({
+                            topic: dlqLogTopic,
+                            messages: [{ value: logMessage }],
+                        });
+                        await producer.disconnect();
+                        console.error(`Moved to Dead Letter Queue: ${logMessage}`);
+                    }
+                }
             }
         }
     });

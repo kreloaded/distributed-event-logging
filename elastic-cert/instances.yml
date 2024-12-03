@@ -1,0 +1,19 @@
+instances:
+  - name: elasticsearch-node1
+    dns:
+      - elasticsearch-node1
+      - localhost
+    ip:
+      - 172.18.0.4  
+  - name: elasticsearch-node2
+    dns:
+      - elasticsearch-node2
+      - localhost
+    ip:
+      - 172.18.0.3  
+  - name: kibana
+    dns:
+      - kibana
+      - localhost
+    ip:
+      - 172.18.0.6  
